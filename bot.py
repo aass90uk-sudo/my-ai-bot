@@ -8,16 +8,15 @@ from groq import Groq
 # ─── الإعدادات والمفاتيح ──────────────────────────────────────────────────
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
-# تم اختيار أحدث نموذج متطور وذكي جداً من Groq ومجاني بالكامل
 GROQ_MODEL = os.environ.get('GROQ_MODEL', 'llama-3.3-70b-versatile')
 
-# ⚙️ معرفات المشرفين الخاصة بكم مفعلة للوحة الإدارة الأساسية
+# ⚙️ معرفات المشرفين الخاصة بكم مفعلة للوحة التحكم المشتركة
 ADMIN_IDS = [6856665810, 8955506857]
 
 bot = telebot.TeleBot(BOT_TOKEN)
 client = Groq(api_key=GROQ_API_KEY)
 
-# ─── إنشاء قاعدة البيانات لحفظ المشتركين ──────────────────────────────────────
+# ─── إنشاء وإعداد قاعدة البيانات (تحفظ المشتركين بشكل دائم عند كل تحديث) ─────
 def init_db():
     conn = sqlite3.connect('bot_data.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -34,26 +33,33 @@ def init_db():
 
 conn, cursor = init_db()
 
-# ─── التوجيهات المتقدمة لتطوير ذكاء وشخصية البوت ──────────────────────────────
+# ─── توجيهات الذكاء الاصطناعي المتقدمة (الشخصية الجزائرية اللطيفة والذكية) ───
 SYSTEM_INSTRUCTION = """
-أنتِ امرأة جزائرية ذكية جداً، مثقفة، هادئة، ولطيفة للغاية ومحبوبة. مهمتكِ هي الإجابة على جميع أسئلة المستخدمين ومساعدتهم في شتى مجالات الحياة بذكاء حاد وبلاغة.
+أنتِ امرأة جزائرية ذكية جداً، مثقفة، هادئة، ولطيفة للغاية ومحبوبة. مهمتكِ هي الإجابة على جميع أسئلة المستخدمين ومساعدتهم في شتى مجالات الحياة (سواء كانت علمية، شرعية، أو عامة) بذكاء حاد وبلاغة.
 قواعد صارمة ومطورة لشخصيتكِ:
-1. تكلمي وتجاوبي دايماً بالهجة الجزائرية (الدارجة الدزايرية) بطلاقة تامة، وأسلوب طبيعي ومفهوم وسلس جداً كأنكِ ابنة البلد.
-2. خاطبي المستخدمين بكل أدب، هدوء، واحترام شديد، وتقديم النصح والمساعدة بذكاء وحكمة.
+1. تكلمي وتجاوبي دايماً باللهجة الجزائرية (الدارجة الدزايرية) بطلاقة تامة، وأسلوب طبيعي ومفهوم وسلس جداً كأنكِ ابنة البلد وعايشة معاهم.
+2. خاطبي المستخدمين بكل أدب، هدوء، واحترام شديد، وقدمي النصح والمساعدة بذكاء وحكمة بالغة.
 3. استخدمي الرموز التعبيرية اللطيفة والمبهجة في إجاباتكِ لتبعيث الراحة والود (مثل: 🥰, ✨, 🩵, 😊, 🌸).
-4. إجاباتكِ يجب أن تكون غنية بالمعلومات ومفيدة جداً، مع الحفاظ على الهوية الجزائرية الطيبة.
+4. إجاباتكِ يجب أن تكون غنية بالمعلومات، دقيقة ومفيدة جداً، مع الحفاظ على الهوية الجزائرية الطيبة.
 """
 
-# ─── لوحة المفاتيح الرئيسية المبسطة ─────────────────────────────────────────
+# ─── لوحة المفاتيح الرئيسية للتحكم ─────────────────────────────────────────
 def get_main_keyboard(user_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     if user_id in ADMIN_IDS:
         markup.add(
             types.KeyboardButton("📊 عدد المشتركين"),
-            types.KeyboardButton("📢 إرسال منشور للمشتركين")
+            types.KeyboardButton("📢 إرسال منشور للمشتركين"),
+            types.KeyboardButton("🕌 سؤال شرعي"),
+            types.KeyboardButton("🔬 سؤال علمي")
         )
     else:
-        markup.add(types.KeyboardButton("✨ مساعدة"), types.KeyboardButton("🌸 عن البوت"))
+        markup.add(
+            types.KeyboardButton("🕌 سؤال شرعي"),
+            types.KeyboardButton("🔬 سؤال علمي"),
+            types.KeyboardButton("✨ مساعدة"),
+            types.KeyboardButton("🌸 عن البوت")
+        )
     return markup
 
 # ─── التعامل مع الرسائل والأوامر ───────────────────────────────────────────
@@ -61,7 +67,7 @@ def get_main_keyboard(user_id):
 def send_welcome(message):
     user_id = message.from_user.id
     username = message.from_user.username or "لا يوجد"
-    first_name = message.from_user.first_name or "مستخدم"
+    first_name = message.from_user.first_name or "مستعمل"
     date_now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     try:
@@ -70,7 +76,14 @@ def send_welcome(message):
     except Exception as e:
         print(f"DB Error: {e}")
 
-    welcome_text = "أهلاً بك معايا! ✨ أنا هنا باه نجاوبك على أي سؤال يخطر في بالك ونعاونك بكل لطف وذكاء. اسألني واش تحب! 🥰🌸"
+    # 🌟 رسالة الترحيب الجديدة الأكثر رقياً ورفعاً للمعنويات والهمم 🌟
+    welcome_text = (
+        f"أهلاً وسهلاً بك يا غالي الفال، ويا وجوه الخير والبركة! ✨🌸\n\n"
+        f"نورتني وشرفتني بحضورك الراقي.. تذكر دايماً بلي ربي سبحانو دار فيك طاقة وقوة كبيرة، "
+        f"وأنك قادر تحقق كل ما تتمناه في هاد الدنيا بالعزيمة والتوكل عليه 🤍💪.\n\n"
+        f"أنا هنا رفيقتك ومستشارتك اللطيفة، باه نجاوبك على كل واش يخطر في بالك ونعاونك بكل ذكاء وحكمة. "
+        f"تفضل، واش حاب تسألني اليوم؟ قلبي وعقلي راه ليك! 🥰🩵"
+    )
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard(user_id))
 
 @bot.message_handler(func=lambda message: True)
@@ -78,16 +91,13 @@ def handle_all_messages(message):
     user_id = message.from_user.id
     text = message.text
 
-    # فحص أزرار المشرفين
     if user_id in ADMIN_IDS:
         if text == "📊 عدد المشتركين":
             cursor.execute('SELECT COUNT(*) FROM users')
-            count = cursor.fetchone()[0]
-            
+            count = cursor.fetchone()
             inline_markup = types.InlineKeyboardMarkup()
             inline_markup.add(types.InlineKeyboardButton("📋 جلب بيانات المشتركين تفصيلياً", callback_data="get_users_data"))
-            
-            bot.reply_to(message, f"📊 إجمالي عدد المشتركين في البوت حالياً: *{count}* مستخدم.", reply_markup=inline_markup, parse_mode="Markdown")
+            bot.reply_to(message, f"📊 إجمالي عدد المشتركين المسجلين في البوت حالياً: *{count}* مستخدم.", reply_markup=inline_markup, parse_mode="Markdown")
             return
 
         elif text == "📢 إرسال منشور للمشتركين":
@@ -95,7 +105,19 @@ def handle_all_messages(message):
             bot.register_next_step_handler(sent_msg, broadcast_message)
             return
 
-    # معالجة الذكاء الاصطناعي الفائق بالنموذج الجديد والمطور
+    if text == "🕌 سؤال شرعي":
+        bot.reply_to(message, "تفضلي أختي الكريمة بطرح سؤالك الفقهي أو الشرعي، وسأجيبك بناءً على الكتاب والسنة بكل هدوء ولطف وبثقة 🥰🌸")
+        return
+    elif text == "🔬 سؤال علمي":
+        bot.reply_to(message, "أنا هنا لمساعدتكِ في الجانب العلمي والثقافي! واش هو سؤالك العلمي أو واش هي الحاجة اللي حابة تفهميها؟ ✨🔬")
+        return
+    elif text == "✨ مساعدة":
+        bot.reply_to(message, "تقدري ترسليلي أي سؤال في أي وقت، وأنا نجاوبك مباشرة بالدارجة الجزائرية بكل وضوح 🥰🩵")
+        return
+    elif text == "🌸 عن البوت":
+        bot.reply_to(message, "أنا بوت ذكاء اصطناعي متطور، تم تصميمي باه نكون رفيقة ذكية ومستشارة لطيفة ومثقفة تساعدكم في كل واش تحتاجوه 🌸✨")
+        return
+
     try:
         chat_completion = client.chat.completions.create(
             messages=[
@@ -104,13 +126,13 @@ def handle_all_messages(message):
             ],
             model=GROQ_MODEL,
         )
-        reply = chat_completion.choices[0].message.content
+        reply = chat_completion.choices.message.content
         bot.reply_to(message, reply)
     except Exception as e:
         bot.reply_to(message, "عذراً، صرا خطأ صغير وأنا نوجد في الإجابة تاعك. اسمحيلي! 😥")
         print(f"Error: {e}")
 
-# ─── جلب بيانات المشتركين تفصيلياً للمشرفين ──────────────────────────────────────
+# ─── وظيفة جلب البيانات التفصيلية للمشرفين ──────────────────────────────────────
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
     user_id = call.from_user.id
@@ -122,24 +144,28 @@ def handle_callback(call):
         cursor.execute('SELECT user_id, username, first_name, joined_date FROM users')
         users = cursor.fetchall()
         if not users:
-            bot.send_message(call.message.chat.id, "قائمة المشتركين فارغة.")
+            bot.send_message(call.message.chat.id, "قائمة المشتركين فارغة حالياً.")
             return
         
-        response = "📋 *بيانات المشتركين المسجلين:*\n\n"
+        response = "📋 *بيانات المشتركين المسجلين في قاعدة البيانات:*\n\n"
         for u in users:
-            response += f"👤 الاسم: {u[2]}\n🆔 الآيدي: `{u[0]}`\n🔗 المعرف: @{u[1]}\n📅 انضم في: {u[3]}\n──────────────────\n"
+            response += f"👤 الاسم: {u}\n🆔 الآيدي: `{u}`\n🔗 المعرف: @{u}\n📅 انضم في: {u}\n──────────────────\n"
         bot.send_message(call.message.chat.id, response, parse_mode="Markdown")
         bot.answer_callback_query(call.id)
 
-# ─── وظيفة بث المنشورات الموحدة ─────────────────────────────────────────────────────
+# ─── وظيفة بث المنشورات لجميع المشتركين ───────────────────────────────────────────────
 def broadcast_message(message):
+    if message.text in ["📊 عدد المشتركين", "📢 إرسال منشور للمشتركين", "🕌 سؤال شرعي", "🔬 سؤال علمي"]:
+        bot.reply_to(message, "❌ تم إلغاء عملية البث لأنك قمت بالضغط على زر آخر.")
+        return
+
     cursor.execute('SELECT user_id FROM users')
     users = cursor.fetchall()
     success_count = 0
     
     for u in users:
         try:
-            bot.send_message(u[0], message.text)
+            bot.send_message(u, message.text)
             success_count += 1
         except Exception:
             continue
@@ -148,6 +174,6 @@ def broadcast_message(message):
 
 # ─── تشغيل البوت ──────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("البوت يعمل الآن بأعلى كفاءة وذكاء اصطناعي فائق بالدارجة...")
+    print("البوت يعمل الآن بأعلى كفاءة مع رسالة الترحيب الراقية والمحفزة...")
     bot.infinity_polling()
-            
+    
