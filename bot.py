@@ -33,7 +33,7 @@ def init_db():
 
 conn, cursor = init_db()
 
-# ─── توليد الـ 50 قصيدة برمجياً لتفادي ضخامة الملف ──────────────────────────────
+# ─── توليد الـ 50 قصيدة برمجياً بشكل سليم بدون أخطاء مسافات ──────────────────────
 POETRY_DZ = {}
 POETRY_KH = {}
 
@@ -143,7 +143,7 @@ def handle_all_messages(message):
             bot.reply_to(message, "💬 اختر نوع الأبيات الشعرية التي تفضلها لتصفح الصفحات المنسقة:", reply_markup=inline_poetry)
             return
 
-    # معالجة ذكاء اصطناعي للمستخدم العادي
+    # معالجة ذكاء اصطناعي للميوزين العاديين
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "system", "content": SYSTEM_INSTRUCTION}, {"role": "user", "content": text}],
@@ -235,4 +235,3 @@ def handle_callback(call):
 # ─── وظيفة بث المنشورات ─────────────────────────────────────────────────────
 def broadcast_message(message):
     if message.text in ["📊 عدد المشتركين", "📢 إرسال منشور للمشتركين", "🔥 قسم الأشعار"]:
-            
