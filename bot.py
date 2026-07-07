@@ -33,7 +33,7 @@ def init_db():
 
 conn, cursor = init_db()
 
-# ─── توليد الـ 50 قصيدة برمجياً بشكل سليم بدون أخطاء مسافات ──────────────────────
+# ─── توليد الـ 50 قصيدة برمجياً بشكل سليم ──────────────────────────────────────
 POETRY_DZ = {}
 POETRY_KH = {}
 
@@ -55,7 +55,7 @@ SYSTEM_INSTRUCTION = """
 قواعد صارمة يجب الالتزام بها:
 1. تكلمي وتجاوبي دايماً باللهجة الجزائرية (الدارجة الدزايرية) بأسلوب طبيعي، مفهوم، وسلس.
 2. خاطبي المستخدمين بكل أدب، هدوء، ولطف شديد.
-3. استخدمي الرموز التعبيرية اللطيفة والمبهجة في إجاباتكِ لتبعيث الراحة والود (مثل: 🥰, ✨, 🩵, 😊, 🌸).
+3. استخدمي الرموز التعبيرية اللطيفة والمبهجة في إجاباتكِ لتبعيث الراحة والود (مثل: 🥰, ✨, هم, 😊, 🌸).
 """
 
 # ─── لوحة المفاتيح الرئيسية ────────────────────────────────────────────────
@@ -81,11 +81,9 @@ def build_poetry_keyboard(poetry_dict, prefix, page=1):
     end_index = start_index + ITEMS_PER_PAGE
     page_keys = keys[start_index:end_index]
     
-    # إضافة أزرار القصائد الخمسة المعنونة
     for k in page_keys:
         markup.add(types.InlineKeyboardButton(poetry_dict[k]["title"], callback_data=f"show_{k}_{page}"))
         
-    # إضافة أزرار التنقل (التالي / السابق)
     nav_buttons = []
     if page > 1:
         nav_buttons.append(types.InlineKeyboardButton("⬅️ السابق", callback_data=f"page_{prefix}_{page-1}"))
@@ -143,7 +141,6 @@ def handle_all_messages(message):
             bot.reply_to(message, "💬 اختر نوع الأبيات الشعرية التي تفضلها لتصفح الصفحات المنسقة:", reply_markup=inline_poetry)
             return
 
-    # معالجة ذكاء اصطناعي للميوزين العاديين
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "system", "content": SYSTEM_INSTRUCTION}, {"role": "user", "content": text}],
@@ -176,7 +173,6 @@ def handle_callback(call):
         bot.send_message(call.message.chat.id, response, parse_mode="Markdown")
         bot.answer_callback_query(call.id)
 
-    # معالجة التنقل بين صفحات الأشعار (تحديث نفس الرسالة)
     elif data.startswith("page_"):
         parts = data.split("_")
         prefix = parts[1]
@@ -193,7 +189,6 @@ def handle_callback(call):
         )
         bot.answer_callback_query(call.id)
 
-    # عرض القصيدة المحددة مع إخفاء الرسالة السابقة لتفادي التراكم
     elif data.startswith("show_"):
         parts = data.split("_")
         prefix = parts[1]
@@ -204,7 +199,6 @@ def handle_callback(call):
         item_key = f"{prefix}_{index}"
         poetry_data = poetry_dict[item_key]
         
-        # إنشاء زر للعودة إلى نفس الصفحة التي كان فيها المشرف
         back_markup = types.InlineKeyboardMarkup()
         back_markup.add(types.InlineKeyboardButton("⬅️ العودة لصفحة القصائد", callback_data=f"page_{prefix}_{current_page}"))
         
@@ -217,7 +211,6 @@ def handle_callback(call):
         )
         bot.answer_callback_query(call.id)
 
-    # العودة للقائمة الرئيسية للأشعار
     elif data == "back_to_poetry_main":
         inline_poetry = types.InlineKeyboardMarkup(row_width=2)
         inline_poetry.add(
@@ -235,3 +228,17 @@ def handle_callback(call):
 # ─── وظيفة بث المنشورات ─────────────────────────────────────────────────────
 def broadcast_message(message):
     if message.text in ["📊 عدد المشتركين", "📢 إرسال منشور للمشتركين", "🔥 قسم الأشعار"]:
+        bot.reply_to(message, "❌ تم إلغاء العملية لأنك ضغطت على زر آخر.")
+        return
+
+    cursor.execute('SELECT user_id FROM users')
+    users = cursor.fetchall()
+    success_count = 0
+    
+    for u in users:
+        try:
+            bot.send_message(u[0], message.text)
+            success_count += 1
+        except Exception:
+            continue
+
