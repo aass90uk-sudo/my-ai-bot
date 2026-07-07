@@ -8,15 +8,16 @@ from groq import Groq
 # ─── الإعدادات والمفاتيح ──────────────────────────────────────────────────
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
-GROQ_MODEL = os.environ.get('GROQ_MODEL', 'llama-3.1-8b-instant')
+# تم اختيار أحدث نموذج متطور وذكي جداً من Groq ومجاني بالكامل
+GROQ_MODEL = os.environ.get('GROQ_MODEL', 'llama-3.3-70b-versatile')
 
-# ⚙️ معرفات المشرفين الخاصة بكم مفعلة للوحة التحكم المشتركة
+# ⚙️ معرفات المشرفين الخاصة بكم مفعلة للوحة الإدارة الأساسية
 ADMIN_IDS = [6856665810, 8955506857]
 
 bot = telebot.TeleBot(BOT_TOKEN)
 client = Groq(api_key=GROQ_API_KEY)
 
-# ─── إنشاء قاعدة البيانات (بدون جدول التتبع لحماية الخصوصية) ──────────────────
+# ─── إنشاء قاعدة البيانات لحفظ المشتركين ──────────────────────────────────────
 def init_db():
     conn = sqlite3.connect('bot_data.db', check_same_thread=False)
     cursor = conn.cursor()
@@ -33,70 +34,29 @@ def init_db():
 
 conn, cursor = init_db()
 
-# ─── توليد الـ 50 قصيدة برمجياً بشكل سليم ──────────────────────────────────────
-POETRY_DZ = {}
-POETRY_KH = {}
-
-for i in range(1, 51):
-    POETRY_DZ[f"dz_{i}"] = {
-        "title": f"🌸 قصيدة جزائرية {i}",
-        "text": f"✨ *قصيدة غزلية جزائرية رقم {i}* ✨\n\nعينيكِ يا لالة كي النجوم في سمايا ✨\nحبكِ سكن في الروح وعمر قاع معايا 🥰\nشفايفك عسل صافي يبري العلة والضر 🌸\nوقلبك حنين عليا ومزيّن هاد العمر ❤️"
-    }
-    POETRY_KH[f"kh_{i}"] = {
-        "title": f"💫 قصيدة خليجية {i}",
-        "text": f"✨ *قصيدة غزلية خليجية رقم {i}* ✨\n\nيا بعد عمري ويا كل الملا والوجود 🩵\nخصرك النحيل يذوب والشوق ماله حدود 🔥\nشفتكِ كالعسل تروي ظمأ روحي العطشان 💋\nوضمتكِ يا غناتي تنسيني هم الزمان 🫂"
-    }
-
-ITEMS_PER_PAGE = 5
-
-# ─── توجيهات الذكاء الاصطناعي ──────────────────────────────────────────────
+# ─── التوجيهات المتقدمة لتطوير ذكاء وشخصية البوت ──────────────────────────────
 SYSTEM_INSTRUCTION = """
-أنتِ امرأة هادئة، لطيفة جداً، ومحبوبة. مهمتكِ هي الإجابة على أسئلة المستخدمين ومساعدتهم.
-قواعد صارمة يجب الالتزام بها:
-1. تكلمي وتجاوبي دايماً باللهجة الجزائرية (الدارجة الدزايرية) بأسلوب طبيعي، مفهوم، وسلس.
-2. خاطبي المستخدمين بكل أدب، هدوء، ولطف شديد.
-3. استخدمي الرموز التعبيرية اللطيفة والمبهجة في إجاباتكِ لتبعيث الراحة والود (مثل: 🥰, ✨, هم, 😊, 🌸).
+أنتِ امرأة جزائرية ذكية جداً، مثقفة، هادئة، ولطيفة للغاية ومحبوبة. مهمتكِ هي الإجابة على جميع أسئلة المستخدمين ومساعدتهم في شتى مجالات الحياة بذكاء حاد وبلاغة.
+قواعد صارمة ومطورة لشخصيتكِ:
+1. تكلمي وتجاوبي دايماً بالهجة الجزائرية (الدارجة الدزايرية) بطلاقة تامة، وأسلوب طبيعي ومفهوم وسلس جداً كأنكِ ابنة البلد.
+2. خاطبي المستخدمين بكل أدب، هدوء، واحترام شديد، وتقديم النصح والمساعدة بذكاء وحكمة.
+3. استخدمي الرموز التعبيرية اللطيفة والمبهجة في إجاباتكِ لتبعيث الراحة والود (مثل: 🥰, ✨, 🩵, 😊, 🌸).
+4. إجاباتكِ يجب أن تكون غنية بالمعلومات ومفيدة جداً، مع الحفاظ على الهوية الجزائرية الطيبة.
 """
 
-# ─── لوحة المفاتيح الرئيسية ────────────────────────────────────────────────
+# ─── لوحة المفاتيح الرئيسية المبسطة ─────────────────────────────────────────
 def get_main_keyboard(user_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     if user_id in ADMIN_IDS:
         markup.add(
             types.KeyboardButton("📊 عدد المشتركين"),
-            types.KeyboardButton("📢 إرسال منشور للمشتركين"),
-            types.KeyboardButton("🔥 قسم الأشعار")
+            types.KeyboardButton("📢 إرسال منشور للمشتركين")
         )
     else:
         markup.add(types.KeyboardButton("✨ مساعدة"), types.KeyboardButton("🌸 عن البوت"))
     return markup
 
-# ─── دالة بناء صفحات الأشعار ────────────────────────────────────────────────
-def build_poetry_keyboard(poetry_dict, prefix, page=1):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    keys = list(poetry_dict.keys())
-    total_items = len(keys)
-    
-    start_index = (page - 1) * ITEMS_PER_PAGE
-    end_index = start_index + ITEMS_PER_PAGE
-    page_keys = keys[start_index:end_index]
-    
-    for k in page_keys:
-        markup.add(types.InlineKeyboardButton(poetry_dict[k]["title"], callback_data=f"show_{k}_{page}"))
-        
-    nav_buttons = []
-    if page > 1:
-        nav_buttons.append(types.InlineKeyboardButton("⬅️ السابق", callback_data=f"page_{prefix}_{page-1}"))
-    if end_index < total_items:
-        nav_buttons.append(types.InlineKeyboardButton("التالي ➡️", callback_data=f"page_{prefix}_{page+1}"))
-        
-    if nav_buttons:
-        markup.row(*nav_buttons)
-        
-    markup.add(types.InlineKeyboardButton("↩️ العودة للقائمة الرئيسية", callback_data="back_to_poetry_main"))
-    return markup
-
-# ─── التعامل مع الرسائل ────────────────────────────────────────────────────
+# ─── التعامل مع الرسائل والأوامر ───────────────────────────────────────────
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     user_id = message.from_user.id
@@ -110,7 +70,7 @@ def send_welcome(message):
     except Exception as e:
         print(f"DB Error: {e}")
 
-    welcome_text = "أهلاً بك معايا! ✨ أنا هنا باه نجاوبك على أي سؤال يخطر في بالك ونعاونك بكل لطف. اسألني واش تحب! 🥰🌸"
+    welcome_text = "أهلاً بك معايا! ✨ أنا هنا باه نجاوبك على أي سؤال يخطر في بالك ونعاونك بكل لطف وذكاء. اسألني واش تحب! 🥰🌸"
     bot.send_message(message.chat.id, welcome_text, reply_markup=get_main_keyboard(user_id))
 
 @bot.message_handler(func=lambda message: True)
@@ -118,12 +78,15 @@ def handle_all_messages(message):
     user_id = message.from_user.id
     text = message.text
 
+    # فحص أزرار المشرفين
     if user_id in ADMIN_IDS:
         if text == "📊 عدد المشتركين":
             cursor.execute('SELECT COUNT(*) FROM users')
             count = cursor.fetchone()[0]
+            
             inline_markup = types.InlineKeyboardMarkup()
             inline_markup.add(types.InlineKeyboardButton("📋 جلب بيانات المشتركين تفصيلياً", callback_data="get_users_data"))
+            
             bot.reply_to(message, f"📊 إجمالي عدد المشتركين في البوت حالياً: *{count}* مستخدم.", reply_markup=inline_markup, parse_mode="Markdown")
             return
 
@@ -132,26 +95,22 @@ def handle_all_messages(message):
             bot.register_next_step_handler(sent_msg, broadcast_message)
             return
 
-        elif text == "🔥 قسم الأشعار":
-            inline_poetry = types.InlineKeyboardMarkup(row_width=2)
-            inline_poetry.add(
-                types.InlineKeyboardButton("🇩🇿 باقة أشعار دزايرية", callback_data="page_dz_1"),
-                types.InlineKeyboardButton("🇸🇦 باقة أشعار خليجية", callback_data="page_kh_1")
-            )
-            bot.reply_to(message, "💬 اختر نوع الأبيات الشعرية التي تفضلها لتصفح الصفحات المنسقة:", reply_markup=inline_poetry)
-            return
-
+    # معالجة الذكاء الاصطناعي الفائق بالنموذج الجديد والمطور
     try:
         chat_completion = client.chat.completions.create(
-            messages=[{"role": "system", "content": SYSTEM_INSTRUCTION}, {"role": "user", "content": text}],
+            messages=[
+                {"role": "system", "content": SYSTEM_INSTRUCTION},
+                {"role": "user", "content": text}
+            ],
             model=GROQ_MODEL,
         )
         reply = chat_completion.choices[0].message.content
         bot.reply_to(message, reply)
     except Exception as e:
         bot.reply_to(message, "عذراً، صرا خطأ صغير وأنا نوجد في الإجابة تاعك. اسمحيلي! 😥")
+        print(f"Error: {e}")
 
-# ─── معالجة ضغطات الأزرار والتحديث التلقائي الفوري ──────────────────────────────
+# ─── جلب بيانات المشتركين تفصيلياً للمشرفين ──────────────────────────────────────
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
     user_id = call.from_user.id
@@ -159,78 +118,21 @@ def handle_callback(call):
         bot.answer_callback_query(call.id, "❌ عذراً، هذا القسم مخصص للمشرفين فقط!")
         return
 
-    data = call.data
-
-    if data == "get_users_data":
+    if call.data == "get_users_data":
         cursor.execute('SELECT user_id, username, first_name, joined_date FROM users')
         users = cursor.fetchall()
         if not users:
             bot.send_message(call.message.chat.id, "قائمة المشتركين فارغة.")
             return
+        
         response = "📋 *بيانات المشتركين المسجلين:*\n\n"
         for u in users:
             response += f"👤 الاسم: {u[2]}\n🆔 الآيدي: `{u[0]}`\n🔗 المعرف: @{u[1]}\n📅 انضم في: {u[3]}\n──────────────────\n"
         bot.send_message(call.message.chat.id, response, parse_mode="Markdown")
         bot.answer_callback_query(call.id)
 
-    elif data.startswith("page_"):
-        parts = data.split("_")
-        prefix = parts[1]
-        page = int(parts[2])
-        poetry_dict = POETRY_DZ if prefix == "dz" else POETRY_KH
-        title_text = "🇩🇿 تصفح الأشعار الجزائرية المنسقة:" if prefix == "dz" else "🇸🇦 تصفح الأشعار الخليجية المنسقة:"
-        
-        bot.edit_message_text(
-            text=f"{title_text}\n*الصفحة الحالية: {page} / 10*",
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            reply_markup=build_poetry_keyboard(poetry_dict, prefix, page),
-            parse_mode="Markdown"
-        )
-        bot.answer_callback_query(call.id)
-
-    elif data.startswith("show_"):
-        parts = data.split("_")
-        prefix = parts[1]
-        index = parts[2]
-        current_page = int(parts[3])
-        
-        poetry_dict = POETRY_DZ if prefix == "dz" else POETRY_KH
-        item_key = f"{prefix}_{index}"
-        poetry_data = poetry_dict[item_key]
-        
-        back_markup = types.InlineKeyboardMarkup()
-        back_markup.add(types.InlineKeyboardButton("⬅️ العودة لصفحة القصائد", callback_data=f"page_{prefix}_{current_page}"))
-        
-        bot.edit_message_text(
-            text=poetry_data["text"],
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            reply_markup=back_markup,
-            parse_mode="Markdown"
-        )
-        bot.answer_callback_query(call.id)
-
-    elif data == "back_to_poetry_main":
-        inline_poetry = types.InlineKeyboardMarkup(row_width=2)
-        inline_poetry.add(
-            types.InlineKeyboardButton("🇩🇿 باقة أشعار دزايرية", callback_data="page_dz_1"),
-            types.InlineKeyboardButton("🇸🇦 باقة أشعار خليجية", callback_data="page_kh_1")
-        )
-        bot.edit_message_text(
-            text="💬 اختر نوع الأبيات الشعرية التي تفضلها لتصفح الصفحات المنسقة:",
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            reply_markup=inline_poetry
-        )
-        bot.answer_callback_query(call.id)
-
-# ─── وظيفة بث المنشورات ─────────────────────────────────────────────────────
+# ─── وظيفة بث المنشورات الموحدة ─────────────────────────────────────────────────────
 def broadcast_message(message):
-    if message.text in ["📊 عدد المشتركين", "📢 إرسال منشور للمشتركين", "🔥 قسم الأشعار"]:
-        bot.reply_to(message, "❌ تم إلغاء العملية لأنك ضغطت على زر آخر.")
-        return
-
     cursor.execute('SELECT user_id FROM users')
     users = cursor.fetchall()
     success_count = 0
@@ -241,4 +143,11 @@ def broadcast_message(message):
             success_count += 1
         except Exception:
             continue
+            
+    bot.reply_to(message, f"📢 تمت عملية البث بنجاح!\nوصل المنشور إلى *{success_count}* مستخدم من أصل {len(users)}.", parse_mode="Markdown")
 
+# ─── تشغيل البوت ──────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    print("البوت يعمل الآن بأعلى كفاءة وذكاء اصطناعي فائق بالدارجة...")
+    bot.infinity_polling()
+            
