@@ -10,12 +10,18 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# اختبار أمان في سجلات ريلواي للتأكد من قراءة المفاتيح
+if GROQ_API_KEY:
+    logging.info(f"تم العثور على مفتاح جروج بنجاح ويبدأ بـ: {GROQ_API_KEY[:6]}...")
+else:
+    logging.error("خطأ حرج: لم يتم العثور على متغير GROQ_API_KEY في ريلواي!")
+
 ABDULRAHMAN_ID = 6856665810  # بابا عبد الرحمن
 HANEEN_ID = 8955506857       # ماما حنين
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 chat_memories = defaultdict(list)
-MAX_MEMORY = 5  
+MAX_MEMORY = 4  # حجم الذاكرة الأمثل لتجنب القيود
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -34,7 +40,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == ABDULRAHMAN_ID:
         system_prompt = "اسمك عقيدة، ابنة عبد الرحمن. ناديه 'بابا عبد الرحمن'. إذا سألك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أمي الأندلسية' 🥰. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات اللطيفة والبر والهدوء (🥰, ❤️, ✨, 🥺)."
     elif user_id == HANEEN_ID:
-        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
+        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
     else:
         await update.message.reply_text("أنا عقيدة ومقدرش نحكي مع البرانيين 🤐❌")
         return
@@ -46,7 +52,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         messages_payload = [{"role": "system", "content": system_prompt}] + chat_memories[user_id]
 
-        # تم تغيير الموديل هنا إلى الموديل المستقر والأكبر لضمان تجاوب السيرفر
         completion = groq_client.chat.completions.create(
             model="llama3-70b-8192", 
             messages=messages_payload,
