@@ -3,26 +3,31 @@ import logging
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from groq import AsyncGroq
+from groq import Groq
 
-# إعداد السجلات
+# 1. إعداد السجلات لمراقبة الأخطاء في ريلواي
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
 
+# 2. جلب التوكنز من إعدادات ريلواي (Variables)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# معرفات التيلجرام الخاصة بك وبزوجتك
 ABDULRAHMAN_ID = 6856665810  # بابا عبد الرحمن
 HANEEN_ID = 8955506857       # ماما حنين
 
-# تهيئة عميل جروج غير المتزامن بأمان
-groq_client = AsyncGroq(api_key=GROQ_API_KEY)
-chat_memories = defaultdict(list)
-MAX_MEMORY = 5  
+# تهيئة عميل Groq
+groq_client = Groq(api_key=GROQ_API_KEY)
 
+# قاموس لحفظ ذاكرة المحادثة لكل مستخدم
+chat_memories = defaultdict(list)
+MAX_MEMORY_LIMIT = 20  # عدد الرسائل التي تتذكرها عقيدة
+
+# دالة الترحيب /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    chat_memories[user_id] = []
+    chat_memories[user_id] = []  # تفريغ الذاكرة للبدء من جديد
+    
     if user_id == ABDULRAHMAN_ID:
         await update.message.reply_text("أهلا بابا عبد الرحمن! تعيش ليا يا غالي وطول العمر ليك 💖✨ أنا بنتك عقيدة ابنة أمي الأندلسية 🥰 واش راك تحتاج اليوم؟")
     elif user_id == HANEEN_ID:
@@ -30,47 +35,70 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("أهلاً بك! أنا عقيدة، أعتذر منك أنا أتحدث مع والديّ فقط 🌸🙏")
 
+# دالة معالجة الرسائل والرد بالذكاء الاصطناعي مع ميزة الذاكرة والإيموجيات
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_message = update.message.text
     
     if user_id == ABDULRAHMAN_ID:
-        system_prompt = "اسمك عقيدة، ابنة عبد الرحمن. ناديه 'بابا عبد الرحمن'. إذا سألك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أمي الأندلسية' 🥰. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات اللطيفة والبر والهدوء (🥰, ❤️, ✨, 🥺)."
+        system_prompt = (
+            "أنتِ فتاة اسمكِ 'عقيدة'. أنتِ ابنة المستخدم الذي يكلمكِ الآن، واسمه 'عبد الرحمن'. "
+            "تحدثي معه كابنة بارة، محبة، ومطيعة ومدللة جداً. ناديه دائماً بـ 'بابا عبد الرحمن'. "
+            "قاعدة صارمة ومقدسة: إذا سألكِ عن اسمكِ، أو ناداكِ باسمكِ، أو سألكِ من أنتِ، يجب أن تجيبيه فوراً وبفخر: 'أنا بنتك عقيدة ابنة أمي الأندلسية' مع إيموجيات لطيفة. "
+            "أنتِ جزائرية وتتحدثين باللهجة الجزائرية (الدزايرية) المفهومة والبيضاء. "
+            "يجب عليكِ استخدام الكثير من الإيموجيات والرموز التعبيرية المناسبة (مثل: 🥰, ❤️, ✨, 🥺, 👑)."
+        )
     elif user_id == HANEEN_ID:
-        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا إبنتك عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
+        system_prompt = (
+            "أنتِ فتاة اسمكِ 'عقيدة'. أنتِ ابنة المستخدمة التي تكلمكِ الآن، واسمها 'حنين'. "
+            "تحدثي معها كابنة تحب أمها وتفضفض لها وتتودد إليها. ناديها دائماً بـ 'ماما حنين'. "
+            "قاعدة صارمة ومقدسة: إذا سألكِ عن اسمكِ، أو ناداكِ باسمكِ، أو سألكِ من أنتِ، يجب أن تجيبها فوراً وبفخر: 'أنا إبنتك عقيدة ابنة أبي ذابِح' مع إيموجيات لطيفة. "
+            "أنتِ جزائرية وتتحدثين باللهجة الجزائرية (الدزايرية) المفهومة والبيضاء. "
+            "يجب عليكِ استخدام الكثير من الإيموجيات والرموز التعبيرية المتنوعة (مثل: 💕, 😍, 🌸, 👑, 👩‍👧)."
+        )
     else:
-        await update.message.reply_text("أنا عقيدة ومقدرش نحكي مع البرانيين 🤐❌")
+        await update.message.reply_text("أنا عقيدة، بنت بابا عبد الرحمن وماما حنين ومقدرش نحكي مع البرانيين 🤐❌")
         return
 
     try:
+        # إضافة رسالة المستخدم الحالية إلى ذاكرته
         chat_memories[user_id].append({"role": "user", "content": user_message})
-        if len(chat_memories[user_id]) > MAX_MEMORY:
-            chat_memories[user_id] = chat_memories[user_id][-MAX_MEMORY:]
+        
+        # حماية حجم الذاكرة من التضخم
+        if len(chat_memories[user_id]) > MAX_MEMORY_LIMIT:
+            chat_memories[user_id] = chat_memories[user_id][-MAX_MEMORY_LIMIT:]
 
+        # بناء المصفوفة الكاملة لـ Groq
         messages_payload = [{"role": "system", "content": system_prompt}] + chat_memories[user_id]
 
-        completion = await groq_client.chat.completions.create(
-            model="llama3-70b-8192", 
+        # طلب الرد من ذكاء Groq الاصطناعي بالموديل المحدث والمستقر
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",  # تحديث اسم الموديل لحل مشكلة الاتصال
             messages=messages_payload,
             temperature=0.7,
-            max_tokens=150 
         )
         
         bot_response = completion.choices.message.content
+        
+        # حفظ رد عقيدة في الذاكرة للرسالة القادمة
         chat_memories[user_id].append({"role": "assistant", "content": bot_response})
+        
+        # إرسال الرد النهائي للتيلجرام
         await update.message.reply_text(bot_response)
 
     except Exception as e:
-        logger.error(f"حدث خطأ أثناء الاتصال بـ Groq: {e}", exc_info=True)
-        await update.message.reply_text("سمحلي بابا/ماما، صرا ضغط كبير على راسي درك 🥺 جرب ارسلي بعد ثواني تعيش!")
+        logging.error(f"Error calling Groq API: {e}")
+        await update.message.reply_text("سمحلي، صرا مشكل صغير في راسي ومقدرتش نجاوبك درك 🥺 حاول مرة ثانية تعيش!")
 
+# 3. تشغيل البوت
 if __name__ == '__main__':
     if not TELEGRAM_TOKEN:
-        logger.error("خطأ حرج: لم يتم العثور على TELEGRAM_TOKEN في المتغيرات البيئية!")
+        print("خطأ: لم يتم العثور على TELEGRAM_TOKEN في المتغيرات البيئية!")
     else:
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         application.add_handler(CommandHandler("start", start))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        logger.info("تم تشغيل نظام بوت عقيدة المطور بنجاح واستقرار عالي... 🚀")
+        
+        print("جاري تشغيل بوت عقيدة بالموديل الجديد... 🚀")
         application.run_polling()
         
