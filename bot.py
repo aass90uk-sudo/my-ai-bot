@@ -3,25 +3,22 @@ import logging
 from collections import defaultdict
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from groq import Groq
+from groq import AsyncGroq
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+# إعداد السجلات
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# اختبار أمان في سجلات ريلواي للتأكد من قراءة المفاتيح
-if GROQ_API_KEY:
-    logging.info(f"تم العثور على مفتاح جروج بنجاح ويبدأ بـ: {GROQ_API_KEY[:6]}...")
-else:
-    logging.error("خطأ حرج: لم يتم العثور على متغير GROQ_API_KEY في ريلواي!")
-
 ABDULRAHMAN_ID = 6856665810  # بابا عبد الرحمن
 HANEEN_ID = 8955506857       # ماما حنين
 
-groq_client = Groq(api_key=GROQ_API_KEY)
+# تهيئة عميل جروج غير المتزامن بأمان
+groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 chat_memories = defaultdict(list)
-MAX_MEMORY = 4  # حجم الذاكرة الأمثل لتجنب القيود
+MAX_MEMORY = 5  
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -40,7 +37,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == ABDULRAHMAN_ID:
         system_prompt = "اسمك عقيدة، ابنة عبد الرحمن. ناديه 'بابا عبد الرحمن'. إذا سألك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أمي الأندلسية' 🥰. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات اللطيفة والبر والهدوء (🥰, ❤️, ✨, 🥺)."
     elif user_id == HANEEN_ID:
-        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
+        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا إبنتك عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
     else:
         await update.message.reply_text("أنا عقيدة ومقدرش نحكي مع البرانيين 🤐❌")
         return
@@ -52,7 +49,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         messages_payload = [{"role": "system", "content": system_prompt}] + chat_memories[user_id]
 
-        completion = groq_client.chat.completions.create(
+        completion = await groq_client.chat.completions.create(
             model="llama3-70b-8192", 
             messages=messages_payload,
             temperature=0.7,
@@ -64,16 +61,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(bot_response)
 
     except Exception as e:
-        logging.error(f"Groq Error: {e}")
+        logger.error(f"حدث خطأ أثناء الاتصال بـ Groq: {e}", exc_info=True)
         await update.message.reply_text("سمحلي بابا/ماما، صرا ضغط كبير على راسي درك 🥺 جرب ارسلي بعد ثواني تعيش!")
 
 if __name__ == '__main__':
     if not TELEGRAM_TOKEN:
-        print("خطأ في التوكن")
+        logger.error("خطأ حرج: لم يتم العثور على TELEGRAM_TOKEN في المتغيرات البيئية!")
     else:
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         application.add_handler(CommandHandler("start", start))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        print("تشغيل بوت عقيدة... 🚀")
+        logger.info("تم تشغيل نظام بوت عقيدة المطور بنجاح واستقرار عالي... 🚀")
         application.run_polling()
         
