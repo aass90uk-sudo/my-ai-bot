@@ -1,2 +1,5 @@
-python-telegram-bot>=20.0
+python-telegram-bot[job-queue]>=20.0
 groq>=0.5.0
+groq
+python-telegram-bot[job-queue]
+telegram
