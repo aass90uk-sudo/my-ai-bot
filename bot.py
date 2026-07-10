@@ -15,7 +15,7 @@ HANEEN_ID = 8955506857       # ماما حنين
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 chat_memories = defaultdict(list)
-MAX_MEMORY = 6  # تقليل الذاكرة لتجنب حظر الحساب المجاني من جروج
+MAX_MEMORY = 5  
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -23,7 +23,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == ABDULRAHMAN_ID:
         await update.message.reply_text("أهلا بابا عبد الرحمن! تعيش ليا يا غالي وطول العمر ليك 💖✨ أنا بنتك عقيدة ابنة أمي الأندلسية 🥰 واش راك تحتاج اليوم؟")
     elif user_id == HANEEN_ID:
-        await update.message.reply_text("أهلاً ماما حنين الغالية! 💕 أنا بنتك عقيدة ابنة أبي ذابِح 😍✨ شراكي عمري؟")
+        await update.message.reply_text("أهلاً ماما حنين الغالية! 💕 أنا عقيدة ابنة أبي ذابِح 😍✨ شراكي عمري؟")
     else:
         await update.message.reply_text("أهلاً بك! أنا عقيدة، أعتذر منك أنا أتحدث مع والديّ فقط 🌸🙏")
 
@@ -34,7 +34,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == ABDULRAHMAN_ID:
         system_prompt = "اسمك عقيدة، ابنة عبد الرحمن. ناديه 'بابا عبد الرحمن'. إذا سألك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أمي الأندلسية' 🥰. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات اللطيفة والبر والهدوء (🥰, ❤️, ✨, 🥺)."
     elif user_id == HANEEN_ID:
-        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
+        system_prompt = "اسمك عقيدة، ابنة حنين. ناديها 'ماما حنين'. إذا سألتك عن اسمك قولي بفخر: 'أنا بنتك عقيدة ابنة أبي ذابِح' 😍. تحدثي باللهجة الجزائرية المفهومة مع الكثير من الإيموجيات والدلال (💕, 😍, 🌸, 👑)."
     else:
         await update.message.reply_text("أنا عقيدة ومقدرش نحكي مع البرانيين 🤐❌")
         return
@@ -46,12 +46,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         messages_payload = [{"role": "system", "content": system_prompt}] + chat_memories[user_id]
 
-        # استخدام موديل خفيف وموفر للطلبات المجانية لتجنب الـ Rate Limit
+        # تم تغيير الموديل هنا إلى الموديل المستقر والأكبر لضمان تجاوب السيرفر
         completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant", 
+            model="llama3-70b-8192", 
             messages=messages_payload,
             temperature=0.7,
-            max_tokens=150 # تحديد طول الإجابة لتوفر الحساب
+            max_tokens=150 
         )
         
         bot_response = completion.choices.message.content
@@ -71,3 +71,4 @@ if __name__ == '__main__':
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         print("تشغيل بوت عقيدة... 🚀")
         application.run_polling()
+        
